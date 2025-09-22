@@ -19,7 +19,6 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddAutoMapper(typeof(IApplicationAssemblyMarker).Assembly);
 builder.Services.AddValidatorsFromAssemblyContaining<IApplicationAssemblyMarker>();
 
-// MVC (+ Newtonsoft optional)
 builder.Services.AddControllers();
 
 builder.Services.AddApiVersioning(o =>
@@ -37,8 +36,15 @@ app.UseSerilogRequestLogging();
 app.UseCors();
 app.UseHttpsRedirection();
 app.MapControllers();
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 app.Run();
 
 public partial class Program { }
