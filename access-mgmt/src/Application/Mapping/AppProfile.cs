@@ -13,7 +13,6 @@ namespace Application.Mapping
             CreateMap<User, UserDto>()
                 .ForMember(d => d.GroupName, m => m.MapFrom(s => s.UserGroup.GroupName));
 
-            CreateMap<UserDto, User>(); // rarely used; mostly map from Create/Update DTOs
             CreateMap<CreateUserDto, User>()
                 .ConstructUsing(d => new User(d.FirstName, d.LastName, d.Email, d.UserGroupId, d.AttachedCustomerId));
             CreateMap<UpdateUserDto, User>(); // we’ll set properties manually to respect encapsulation
