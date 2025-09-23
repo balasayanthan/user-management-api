@@ -10,6 +10,6 @@ namespace Application.Groups
     }
 
     // INPUT
-    public sealed record CreateGroupDto([property: Required, MaxLength(100)] string GroupName);
-    public sealed record UpdateGroupDto([property: Required, MaxLength(100)] string GroupName);
+    public sealed record CreateGroupDto([param: Required, MaxLength(100)] string GroupName);
+    public sealed record UpdateGroupDto([param: Required, MaxLength(100)] string GroupName);
 }
