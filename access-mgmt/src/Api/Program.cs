@@ -6,16 +6,21 @@ using FluentValidation;
 using Infrastructure;
 using Infrastructure.Persistence;
 using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Api.Auth;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi.Models;
 
 public partial class Program {
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        var authEnabled = builder.Configuration.GetValue("Auth:Enabled", false);
 
         builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
         builder.Services.AddInfrastructure(builder.Configuration);
@@ -37,7 +42,30 @@ public partial class Program {
             o.SubstituteApiVersionInUrl = true;
         });
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+        //builder.Services.AddSwaggerGen();
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "Enter **only** your access token. Swagger will add the `Bearer ` prefix.",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
 
         var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
         var allowCreds = builder.Configuration.GetValue("Cors:AllowCredentials", false);
@@ -52,21 +80,25 @@ public partial class Program {
         builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
         builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>(name: "db");
 
-        var authEnabled = builder.Configuration.GetValue("Auth:Enabled", false);
+        builder.Services.Configure<StaticBearerOptions>(builder.Configuration.GetSection(StaticBearerOptions.SectionName));
         if (authEnabled)
         {
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = builder.Configuration["Auth:Authority"];  // e.g. https://login.microsoftonline.com/<tenant>/v2.0
-                    options.Audience = builder.Configuration["Auth:Audience"];   // e.g. api://your-api-id
-                    options.RequireHttpsMetadata = false;  
-                });
+            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            //    .AddJwtBearer(options =>
+            //    {
+            //        options.Authority = builder.Configuration["Auth:Authority"];  // e.g. https://login.microsoftonline.com/<tenant>/v2.0
+            //        options.Audience = builder.Configuration["Auth:Audience"];   // e.g. api://your-api-id
+            //        options.RequireHttpsMetadata = false;  
+            //    });
+
+            // Simple static bearer auth 
+            builder.Services.AddStaticBearerAuthentication();
 
             builder.Services.AddAuthorization(options =>
             {
-                // example policy
+                // policy
                 options.AddPolicy("CanViewReports", p => p.RequireClaim("permission", "CanViewReports"));
+                options.AddPolicy("CanManageUsers", p => p.RequireClaim("permission", "CanManageUsers"));
             });
         }
 
