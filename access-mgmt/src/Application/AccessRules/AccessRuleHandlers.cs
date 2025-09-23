@@ -1,4 +1,5 @@
 ﻿using Application.Abstractions;
+using Application.Common.Exceptions;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Domain.Entities;
@@ -17,7 +18,7 @@ namespace Application.AccessRules
                          ?? throw new KeyNotFoundException("Group not found");
 
             if (group.AccessRules.Any(r => r.RuleName == req.Dto.RuleName))
-                throw new InvalidOperationException("Rule already exists for group");
+                throw new ConflictException("Rule already exists for group");
 
             var rule = new AccessRule(req.Dto.UserGroupId, req.Dto.RuleName, req.Dto.Permission);
             db.AccessRules.Add(rule);

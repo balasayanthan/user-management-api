@@ -5,6 +5,8 @@ using AutoMapper.QueryableExtensions;
 using Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Application.Common.Exceptions;
+
 
 namespace Application.Groups
 {
@@ -14,7 +16,7 @@ namespace Application.Groups
         public async Task<Guid> Handle(CreateGroupCommand req, CancellationToken ct)
         {
             if (await db.UserGroups.AnyAsync(g => g.GroupName == req.Dto.GroupName, ct))
-                throw new InvalidOperationException("Group name already exists");
+                throw new ConflictException("Group name already exists");
             var e = new UserGroup(req.Dto.GroupName);
             db.UserGroups.Add(e);
             await db.SaveChangesAsync(ct);
