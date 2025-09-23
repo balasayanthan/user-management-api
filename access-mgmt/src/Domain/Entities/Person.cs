@@ -14,9 +14,25 @@ namespace Domain.Entities
         public string Email { get; private set; } = default!;
         public string FullName => $"{FirstName} {LastName}";
 
-        protected Person() { }
         protected Person(string first, string last, string email)
-            => (FirstName, LastName, Email) = (first, last, email);
+        {
+            ChangeName(first, last);
+            ChangeEmail(email);
+        }
+
+        protected Person() { }
+
+        // Domain methods so *this class* can mutate its own state
+        public void ChangeName(string first, string last)
+        {
+            FirstName = first;
+            LastName = last;
+        }
+
+        public void ChangeEmail(string email)
+        {
+            Email = email;
+        }
     }
     public sealed class Admin : Person
     {
@@ -33,6 +49,17 @@ namespace Domain.Entities
         public User(string first, string last, string email, Guid groupId, int? customerId = null)
             : base(first, last, email) { UserGroupId = groupId; AttachedCustomerId = customerId; }
         private User() { }
+
+        public void AssignGroup(Guid groupId) => UserGroupId = groupId;
+        public void SetAttachedCustomer(int? customer) => AttachedCustomerId = customer;
+
+        public void Update(string first, string last, string email, Guid groupId, int? customerId)
+        {
+            ChangeName(first, last);
+            ChangeEmail(email);
+            AssignGroup(groupId);
+            SetAttachedCustomer(customerId);
+        }
     }
     public sealed class UserGroup : Entity<Guid>
     {

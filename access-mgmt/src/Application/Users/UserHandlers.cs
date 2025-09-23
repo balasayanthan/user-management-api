@@ -31,14 +31,15 @@ namespace Application.Users
     {
         public async Task Handle(UpdateUserCommand req, CancellationToken ct)
         {
-            var e = await db.Users.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new KeyNotFoundException("User not found");
+            var e = await db.Users.FirstOrDefaultAsync(x => x.Id == req.Id, ct)
+                    ?? throw new KeyNotFoundException("User not found");
 
-            // minimal setters while keeping private setters in entity
-            e.GetType().GetProperty("FirstName")!.SetValue(e, req.Dto.FirstName);
-            e.GetType().GetProperty("LastName")!.SetValue(e, req.Dto.LastName);
-            e.GetType().GetProperty("Email")!.SetValue(e, req.Dto.Email);
-            e.GetType().GetProperty("UserGroupId")!.SetValue(e, req.Dto.UserGroupId);
-            e.GetType().GetProperty("AttachedCustomerId")!.SetValue(e, req.Dto.AttachedCustomerId);
+            // (optional) validate group exists to give a nice 404/400
+            var groupExists = await db.UserGroups.AnyAsync(g => g.Id == req.Dto.UserGroupId, ct);
+            if (!groupExists) throw new KeyNotFoundException("UserGroup not found");
+
+            e.Update(req.Dto.FirstName, req.Dto.LastName, req.Dto.Email,
+                     req.Dto.UserGroupId, req.Dto.AttachedCustomerId);
 
             await db.SaveChangesAsync(ct);
         }
